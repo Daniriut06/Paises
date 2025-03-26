@@ -21,7 +21,9 @@ import javax.swing.tree.DefaultTreeModel;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import entidades.Ciudad;
 import entidades.Pais;
+import entidades.Region;
 
 public class FrmDivisionPolitica extends JFrame {
 
@@ -37,7 +39,7 @@ public class FrmDivisionPolitica extends JFrame {
         JToolBar tbDivisionPolitica = new JToolBar();
 
         JButton btnHimno = new JButton();
-        btnHimno.setIcon(new ImageIcon(getClass().getResource("/iconos/himno.jpg")));
+        btnHimno.setIcon(new ImageIcon(getClass().getResource("/iconos/Himno.png")));
         btnHimno.setToolTipText("Reproducir Himno");
         btnHimno.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
@@ -76,32 +78,96 @@ public class FrmDivisionPolitica extends JFrame {
     }
 
     private List<Pais> paises;
-    
+
     private void cargarDatos() {
         ObjectMapper objectMapper = new ObjectMapper();
         String nombreArchivo = System.getProperty("user.dir") + "/src/datos/DivisionPolitica.json";
 
-        //obtener los datos desde el archivo yeison
-        try{
-            paises = objectMapper.readValue(new File(nombreArchivo), objectMapper.getTypeFactory().constructCollectionType(List.class, Pais.class));
-            if (paises != null){
-                for (Pais pais : paises){
+        // obtener los datos desde el archivo yeison
+        try {
+            paises = objectMapper.readValue(new File(nombreArchivo),
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, Pais.class));
+            if (paises != null) {
+                for (Pais pais : paises) {
                     DefaultMutableTreeNode nodoPais = new DefaultMutableTreeNode(pais.getNombre());
+                    if (pais.getRegiones() != null) {
+                        for (Region region : pais.getRegiones()) {
+                            DefaultMutableTreeNode nodoRegion = new DefaultMutableTreeNode(region.getNombre());
+                            nodoPais.add(nodoRegion);
+                            if (region.getCiudades() != null) {
+                                for (Ciudad ciudad : region.getCiudades()) {
+                                    DefaultMutableTreeNode nodoCiudad = new DefaultMutableTreeNode(ciudad.getNombre());
+                                    nodoRegion.add(nodoCiudad);
+                                }
+
+                            }
+
+                        }
+
+                    }
                     nodoRaiz.add(nodoPais);
+
                 }
 
             }
-        }catch(Exception ex){
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(null, "no se pudieron cargar los datos" + ex);
 
         }
 
     }
-    private void mostrarMapa() {
+
+    private String getNombrePais() {
+        DefaultMutableTreeNode nodo = (DefaultMutableTreeNode) arbol.getLastSelectedPathComponent();
+        while (nodo != null) {
+            if (nodo.getParent() == nodoRaiz) {
+                return nodo.toString().replace("á", "a")
+                        .replace("é", "e")
+                        .replace("í", "i")
+                        .replace("ó", "o")
+                        .replace("ú", "u");
+            }
+            nodo = (DefaultMutableTreeNode) nodo.getParent();
+        }
+        return "";
 
     }
 
+    private void mostrarMapa() {
+        String nombrePais = getNombrePais();
+        if (!nombrePais.equals("")) {
+            String rutaMapa = "src/mapas/" + nombrePais + ".jpg";
+            File archivoMapa = new File(rutaMapa);
+            if (archivoMapa.exists()) {
+                lblMapa.setIcon(new ImageIcon(rutaMapa));
+            } else {
+                lblMapa.setIcon(null);
+                JOptionPane.showMessageDialog(null, "Paila mami, no tenemos mapa de ese hueco");
+            }
+
+        }
+    }
+
+    private boolean reproduciendo = false;
+
     private void reproducirHimno() {
+        if (reproduciendo) {
+            reproduciendo = false;
+            ReproductorAudio.detener();
+
+        } else {
+            String nombrePais = getNombrePais();
+            if (!nombrePais.equals("")) {
+                String rutaHimno = "src/himnos/" + nombrePais + ".mp3";
+                File archivoHimno = new File(rutaHimno);
+                if (archivoHimno.exists()) {
+                    ReproductorAudio.reproducir((rutaHimno));
+                    reproduciendo = true;
+                }else{
+                    JOptionPane.showMessageDialog(null, "no tenemos musica peruana");
+                }
+            }
+        }
 
     }
 
